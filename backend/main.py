@@ -48,6 +48,12 @@ ANT_URL = "https://api.anthropic.com/v1/messages"
 ANT_VER = "2023-06-01"
 MODEL   = "claude-haiku-4-5"
 
+AIE_BASE = "https://www.ai.engineer/europe"
+AIE_RESOURCES = {
+    "sessions": f"{AIE_BASE}/sessions.json",
+    "speakers": f"{AIE_BASE}/speakers.json",
+}
+
 # ── Typed lifespan state ──────────────────────────────────────────────────────
 # Skill: yield a TypedDict → typed request.state["key"] in every endpoint
 class AppState(TypedDict):
@@ -136,6 +142,30 @@ async def chat(request: Request[AppState]) -> JSONResponse:
     return JSONResponse(ant_resp.json())
 
 
+async def aie_proxy(request: Request[AppState]) -> JSONResponse:
+    """
+    responses:
+      200:
+        description: Proxied ai.engineer data (sessions or speakers).
+      404:
+        description: Unknown resource.
+      502:
+        description: Upstream ai.engineer error.
+    """
+    resource = request.path_params["resource"]
+    url = AIE_RESOURCES.get(resource)
+    if not url:
+        raise HTTPException(status_code=404, detail=f"Unknown resource: {resource}")
+
+    http: httpx.AsyncClient = request.state["http"]
+    resp = await http.get(url)
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="Failed to fetch from ai.engineer")
+
+    return JSONResponse(resp.json())
+
+
 # ── App assembly ──────────────────────────────────────────────────────────────
 # Skill: all routes, middleware, exception_handlers, lifespan passed at construction —
 # no @app.route decorators, no on_startup/on_shutdown, no add_event_handler
@@ -144,6 +174,7 @@ app = Starlette(
     routes=[
         Route("/health",     health,         methods=["GET"]),
         Route("/api/chat",   chat,           methods=["POST", "OPTIONS"]),
+        Route("/api/aie/{resource}", aie_proxy, methods=["GET"]),
         Route("/api/schema", openapi_schema, methods=["GET"],
               include_in_schema=False),
     ],

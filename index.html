@@ -518,7 +518,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 // For local/direct use, falls back to user-provided key in localStorage
 // ═══════════════════════════════════════════════════════════════════════════
 const USE_PROXY = true;  // proxy to Railway backend
-const PROXY_URL = 'https://aie-twin.up.railway.app/api/chat';
+const PROXY_URL = `${API_BASE}/api/chat`;
 const ANT_URL   = 'https://api.anthropic.com/v1/messages';
 const ANT_HDR   = (k) => ({
   'Content-Type':'application/json',
@@ -526,8 +526,9 @@ const ANT_HDR   = (k) => ({
   'anthropic-version':'2023-06-01',
   'anthropic-dangerous-direct-browser-access':'true',
 });
-const SESSIONS_URL = 'https://www.ai.engineer/europe/sessions.json';
-const SPEAKERS_URL = 'https://www.ai.engineer/europe/speakers.json';
+const API_BASE = 'https://aie-twin.up.railway.app';
+const SESSIONS_URL = `${API_BASE}/api/aie/sessions`;
+const SPEAKERS_URL = `${API_BASE}/api/aie/speakers`;
 const HAIKU = 'claude-haiku-4-5';
 
 // ═══════════════════════════════════════════════════════════════════════════
