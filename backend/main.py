@@ -26,7 +26,6 @@ from starlette.datastructures import CommaSeparatedStrings, Secret
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -40,9 +39,7 @@ config = Config(".env")
 DEBUG         = config("DEBUG",           cast=bool,                 default=False)
 ANTHROPIC_KEY = config("ANTHROPIC_KEY",   cast=Secret)               # required — no default
 ALLOWED_ORIG  = config("ALLOWED_ORIGINS", cast=CommaSeparatedStrings,
-                        default="http://localhost:3000")
-ALLOWED_HOSTS = config("ALLOWED_HOSTS",   cast=CommaSeparatedStrings,
-                        default="localhost,127.0.0.1")
+                        default="*")
 
 ANT_URL = "https://api.anthropic.com/v1/messages"
 ANT_VER = "2023-06-01"
@@ -179,11 +176,6 @@ app = Starlette(
               include_in_schema=False),
     ],
     middleware=[
-        # Skill: TrustedHostMiddleware first (outermost), CORS inside it
-        Middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=list(ALLOWED_HOSTS),
-        ),
         Middleware(
             CORSMiddleware,
             allow_origins=list(ALLOWED_ORIG),
