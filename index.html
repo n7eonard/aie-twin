@@ -340,8 +340,8 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 <canvas id="bg"></canvas>
 <div class="grid"></div>
 
-<!-- ═══ STEP 1: API KEY ═══ -->
-<div id="s1" class="screen">
+<!-- ═══ STEP 1: API KEY (skipped when USE_PROXY) ═══ -->
+<div id="s1" class="screen hidden">
   <div class="logo">aie<em>.twin()</em><sub>AIE Europe '26 · London · Apr 8–10</sub></div>
   <div class="step-indicator">
     <div class="sdot on"></div><div class="sdot"></div>
@@ -359,7 +359,7 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 </div>
 
 <!-- ═══ STEP 2: PROFILE ═══ -->
-<div id="s2" class="screen hidden">
+<div id="s2" class="screen">
   <div class="logo">aie<em>.twin()</em><sub>Your profile — quick, I promise</sub></div>
   <div class="step-indicator">
     <div class="sdot"></div><div class="sdot on"></div>
