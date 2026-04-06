@@ -485,9 +485,30 @@ function toggleDeck() {
 /* ═══════════════════════════════════════════
    TILT STUBS (Task 5)
    ═══════════════════════════════════════════ */
-function tiltEnter(e) {}
-function tiltLeave(e) {}
-function tiltMove(e) {}
+let _tiltRAF = 0;
+function tiltMove(e, el) {
+  if (window.matchMedia('(hover: none)').matches) return;
+  cancelAnimationFrame(_tiltRAF);
+  _tiltRAF = requestAnimationFrame(() => {
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    const rotY = (x - 0.5) * 20;
+    const rotX = (0.5 - y) * 20;
+    el.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
+    el.style.setProperty('--mx', (x * 100) + '%');
+    el.style.setProperty('--my', (y * 100) + '%');
+  });
+}
+
+function tiltEnter(el) {
+  el.style.transition = 'transform .1s ease-out';
+}
+
+function tiltLeave(el) {
+  el.style.transition = 'transform .4s ease-out';
+  el.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale(1)';
+}
 
 /* ═══════════════════════════════════════════
    INIT
