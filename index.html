@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AIE Europe '26 — Session Deck Builder</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ── RESET ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -294,6 +295,61 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 }
 .deck-empty .big{font-size:40px;line-height:1;margin-bottom:10px}
 .deck-empty p{font-family:'Syne Mono',monospace;font-size:12px;letter-spacing:.06em}
+
+/* ── AUTH ── */
+.header-right{display:flex;align-items:center;gap:10px}
+.auth-btn{
+  font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:.08em;
+  background:transparent;color:var(--muted);border:1px solid var(--g2);
+  border-radius:999px;padding:7px 16px;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.auth-btn:hover{color:#e8eef8;border-color:rgba(255,255,255,.3)}
+.user-pill{
+  font-family:'Syne Mono',monospace;font-size:10px;letter-spacing:.04em;
+  color:var(--muted);display:flex;align-items:center;gap:6px;position:relative;
+}
+.user-pill button{
+  font-family:'Syne Mono',monospace;font-size:9px;
+  background:transparent;color:var(--muted2);border:1px solid var(--g2);
+  border-radius:999px;padding:4px 10px;cursor:pointer;transition:all .2s;
+}
+.user-pill button:hover{color:#ff5555;border-color:#ff5555}
+
+/* Auth modal */
+.auth-overlay{
+  position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.auth-overlay.hidden{display:none}
+.auth-modal{
+  background:var(--surface);border:1px solid var(--g2);border-radius:16px;
+  padding:32px;width:100%;max-width:380px;text-align:center;
+}
+.auth-modal h2{font-size:18px;font-weight:800;margin-bottom:6px}
+.auth-modal p{font-family:'Syne Mono',monospace;font-size:11px;color:var(--muted2);margin-bottom:20px;line-height:1.5}
+.auth-input{
+  width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--g2);
+  background:var(--deep);color:var(--txt);font-family:'Syne Mono',monospace;font-size:13px;
+  outline:none;margin-bottom:12px;transition:border-color .2s;
+}
+.auth-input:focus{border-color:rgba(79,255,176,.4)}
+.auth-submit{
+  width:100%;padding:12px;border:none;border-radius:10px;
+  background:#4fffb0;color:#06080e;font-family:'Syne',sans-serif;
+  font-size:14px;font-weight:800;cursor:pointer;transition:opacity .2s;
+}
+.auth-submit:hover{opacity:.85}
+.auth-submit:disabled{opacity:.5;cursor:not-allowed}
+.auth-msg{
+  font-family:'Syne Mono',monospace;font-size:11px;color:#4fffb0;
+  margin-top:12px;line-height:1.5;
+}
+.auth-close{
+  font-family:'Syne Mono',monospace;font-size:10px;color:var(--muted2);
+  background:transparent;border:none;cursor:pointer;margin-top:16px;
+}
+.auth-close:hover{color:var(--txt)}
 </style>
 </head>
 <body>
@@ -303,8 +359,25 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
     <div class="header-title">AIE EUROPE '26</div>
     <div class="header-sub">SESSION DECK BUILDER</div>
   </div>
-  <button class="deck-btn" id="deckBtn" onclick="toggleDeck()">MY DECK (0)</button>
+  <div class="header-right">
+    <div id="authArea">
+      <button class="auth-btn" onclick="showAuthModal()">SIGN IN</button>
+    </div>
+    <button class="deck-btn" id="deckBtn" onclick="toggleDeck()">MY DECK (0)</button>
+  </div>
 </header>
+
+<!-- Auth Modal -->
+<div class="auth-overlay hidden" id="authOverlay" onclick="if(event.target===this)hideAuthModal()">
+  <div class="auth-modal">
+    <h2>Sign in</h2>
+    <p>Enter your email to receive a magic link.<br>No password needed.</p>
+    <input class="auth-input" id="authEmail" type="email" placeholder="you@email.com" onkeydown="if(event.key==='Enter')sendMagicLink()">
+    <button class="auth-submit" id="authSubmit" onclick="sendMagicLink()">SEND MAGIC LINK</button>
+    <div class="auth-msg hidden" id="authMsg"></div>
+    <button class="auth-close" onclick="hideAuthModal()">CANCEL</button>
+  </div>
+</div>
 
 <div class="filters-wrap">
   <div class="filters" id="filters"></div>
@@ -325,8 +398,130 @@ const S = {
   deck: JSON.parse(localStorage.getItem('aie_deck') || '[]'),
   filterTrack: null,
   filterType: null,
-  deckMode: false
+  deckMode: false,
+  user: null
 };
+
+/* ═══════════════════════════════════════════
+   SUPABASE
+   ═══════════════════════════════════════════ */
+const SUPABASE_URL = 'https://mkpqiczvmfnlmcqdjxhj.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UJCQBC9E1Jwfdjm7duJbqA_wwnERyZZ';
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
+
+/* ── Auth UI ── */
+function showAuthModal() {
+  document.getElementById('authOverlay').classList.remove('hidden');
+  document.getElementById('authMsg').classList.add('hidden');
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authSubmit').disabled = false;
+  setTimeout(() => document.getElementById('authEmail').focus(), 100);
+}
+function hideAuthModal() {
+  document.getElementById('authOverlay').classList.add('hidden');
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById('authEmail').value.trim();
+  if (!email) return;
+  const btn = document.getElementById('authSubmit');
+  const msg = document.getElementById('authMsg');
+  btn.disabled = true;
+  btn.textContent = 'SENDING...';
+
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: location.origin + location.pathname }
+  });
+
+  if (error) {
+    msg.textContent = error.message;
+    msg.style.color = '#ff5555';
+  } else {
+    msg.textContent = 'Check your email! Click the magic link to sign in.';
+    msg.style.color = '#4fffb0';
+  }
+  msg.classList.remove('hidden');
+  btn.textContent = 'SEND MAGIC LINK';
+  btn.disabled = false;
+}
+
+function renderAuthUI() {
+  const area = document.getElementById('authArea');
+  if (S.user) {
+    const email = S.user.email || '';
+    const short = email.length > 20 ? email.slice(0, 17) + '...' : email;
+    area.innerHTML = `<div class="user-pill"><span>${esc(short)}</span><button onclick="signOut()">SIGN OUT</button></div>`;
+  } else {
+    area.innerHTML = '<button class="auth-btn" onclick="showAuthModal()">SIGN IN</button>';
+  }
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  S.user = null;
+  renderAuthUI();
+}
+
+/* ── Deck Sync ── */
+let _syncTimer = 0;
+function scheduleDeckSync() {
+  if (!S.user) return;
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(syncDeckToSupabase, 300);
+}
+
+async function syncDeckToSupabase() {
+  if (!S.user || !sb) return;
+  await sb.from('decks').upsert({
+    user_id: S.user.id,
+    session_ids: S.deck,
+    updated_at: new Date().toISOString()
+  });
+}
+
+async function fetchRemoteDeck() {
+  if (!S.user || !sb) return;
+  const { data } = await sb.from('decks').select('session_ids').eq('user_id', S.user.id).single();
+  if (data && data.session_ids) {
+    /* Merge remote + local (union, no duplicates) */
+    const merged = [...new Set([...S.deck, ...data.session_ids])];
+    S.deck = merged;
+    localStorage.setItem('aie_deck', JSON.stringify(S.deck));
+    /* Sync merged back if it changed */
+    if (merged.length !== data.session_ids.length) syncDeckToSupabase();
+  } else {
+    /* No remote deck yet — push local to remote */
+    if (S.deck.length) syncDeckToSupabase();
+  }
+}
+
+async function initAuth() {
+  if (!sb) return;
+  /* Listen for auth state changes (magic link return, sign out) */
+  sb.auth.onAuthStateChange(async (event, session) => {
+    S.user = session?.user || null;
+    renderAuthUI();
+    hideAuthModal();
+    if (S.user) {
+      await fetchRemoteDeck();
+      /* Re-render cards with updated deck state */
+      if (S.sessions.length) {
+        renderGrid();
+        applyFilters();
+        updateDeckCount();
+        if (S.deckMode) renderDeck();
+      }
+    }
+  });
+  /* Check existing session */
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    S.user = session.user;
+    renderAuthUI();
+    await fetchRemoteDeck();
+  }
+}
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -567,6 +762,7 @@ function toggleSave(id) {
     S.deck.push(id);
   }
   localStorage.setItem('aie_deck', JSON.stringify(S.deck));
+  scheduleDeckSync();
 
   // Update card DOM
   const wrap = document.querySelector(`.card-wrap[data-id="${id}"]`);
@@ -743,6 +939,7 @@ function removeDeck(id) {
   const idx = S.deck.indexOf(id);
   if (idx >= 0) S.deck.splice(idx, 1);
   localStorage.setItem('aie_deck', JSON.stringify(S.deck));
+  scheduleDeckSync();
   /* Also update browse view card state */
   const wrap = document.querySelector(`.grid .card-wrap[data-id="${id}"]`);
   if (wrap) {
@@ -873,6 +1070,7 @@ async function init() {
   showSkeletons();
   renderFilters();
   updateDeckCount();
+  initAuth();
 
   try {
     const [sessRes, spkRes] = await Promise.all([
