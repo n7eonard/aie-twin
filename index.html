@@ -774,6 +774,9 @@ function toggleSave(id) {
   }
   updateDeckCount();
   if (S.deckMode) { applyFilters(); renderDeck(); }
+
+  /* Prompt sign-in when user saves their 3rd card (if not signed in) */
+  if (!S.user && S.deck.length === 3) showAuthModal();
 }
 
 function updateDeckCount() {
