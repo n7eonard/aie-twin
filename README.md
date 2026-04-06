@@ -24,20 +24,21 @@ Single HTML file. No framework, no build step, no dependencies.
 - **Card art:** 189 images generated with [FLUX](https://docs.bfl.ai/) (Black Forest Labs), each matching the track's color palette
 - **Deploy:** Cloudflare Pages (static)
 
-## Run locally
+## Card gallery
 
-```bash
-python3 -m http.server 3000
-```
+Each track has its own color palette. Every card background is unique, generated from the session title.
 
-Open `http://localhost:3000`
+| Context Engineering | MCP | Coding Agents | Harness Engineering |
+|:---:|:---:|:---:|:---:|
+| ![Context Engineering](data/card-images/043_QXByaWwgOTExOjE1.webp) | ![MCP](data/card-images/099_TGVzc29ucyBmcm9t.webp) | ![Coding Agents](data/card-images/097_UmVwbGFjaW5nIDEy.webp) | ![Harness Engineering](data/card-images/040_SGFybmVzcyBFbmdp.webp) |
 
-## Regenerate card images
+| Evals & Observability | Voice & Vision | Claws & Personal Agents | AI Architects |
+|:---:|:---:|:---:|:---:|
+| ![Evals](data/card-images/042_V2h5IGJ1aWxkaW5n.webp) | ![Voice & Vision](data/card-images/041_QmV5b25kIFRyYW5z.webp) | ![Claws](data/card-images/039_T3BlbkNsYXcgQU1B.webp) | ![AI Architects](data/card-images/052_VGhlIERvbWFpbi1O.webp) |
 
-```bash
-export BFL_API_KEY=your_key
-python3 scripts/generate-cards.py
-```
+| GPUs & LLM Infra | Generative Media | Google DeepMind/Gemini | Keynote |
+|:---:|:---:|:---:|:---:|
+| ![GPUs](data/card-images/101_T25lIExvZ2luIHRv.webp) | ![Generative Media](data/card-images/079_VGhpbmsgWW91IENh.webp) | ![DeepMind](data/card-images/082_VGhlIGFnZW50LXJl.webp) | ![Keynote](data/card-images/033_T3BlbmluZyBBZGRy.webp) |
 
 ## Credits
 
