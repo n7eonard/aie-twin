@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AIE Europe '26 — Session Deck Builder</title>
+<title>AIE Collector — Build your deck for AI Engineer Europe 2026</title>
+<meta name="description" content="Browse 189 sessions as collector cards, filter by track, and build your personal deck for AI Engineer Europe 2026 in London.">
+<meta property="og:title" content="AIE Collector — Build your deck for AI Engineer Europe 2026">
+<meta property="og:description" content="189 collector cards with unique AI-generated art. Filter by track, flip cards for details, save your favorites. London, April 8-10.">
+<meta property="og:image" content="https://aie-collector.experimenta.work/data/card-images/034_VGhlIE5ldyBBcHBs.webp">
+<meta property="og:url" content="https://aie-collector.experimenta.work">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -80,16 +87,29 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 }
 @media(max-width:1200px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}}
+/* Surprise me button */
+.surprise-btn{
+  font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.04em;
+  background:linear-gradient(135deg,#f97316,#ec4899,#8b5cf6);
+  color:#fff;border:none;
+  border-radius:999px;padding:7px 18px;cursor:pointer;transition:all .25s;white-space:nowrap;flex-shrink:0;
+}
+.surprise-btn:hover{opacity:.85;transform:scale(1.05)}
+.surprise-btn:active{transform:scale(.95)}
+
 @media(max-width:600px){
   .header{padding:10px 14px}
   .header-title{font-size:15px}
   .header-sub{display:none}
   .header-right{gap:6px}
   .auth-btn,.deck-btn{font-size:9px;padding:6px 12px}
-  .filters-wrap{top:44px;padding:8px 14px}
-  .filters{gap:5px}
-  .filter-pill{font-size:9px;padding:5px 10px}
-  .grid{grid-template-columns:1fr;padding:100px 14px 40px;gap:16px}
+  .filters-wrap{position:relative;top:auto;padding:10px 14px;margin-top:44px}
+  .filters-wrap::before,.filters-wrap::after{display:none}
+  .filters{gap:6px;flex-wrap:wrap;overflow-x:visible}
+  .filter-pill{font-size:11px;padding:8px 14px}
+  .surprise-btn{font-size:12px;padding:9px 18px}
+  .filter-divider{display:none}
+  .grid{grid-template-columns:1fr;padding:16px 14px 40px;gap:16px}
   .card-flipper{aspect-ratio:4/5}
   .c-title{font-size:14px}
 }
@@ -655,7 +675,7 @@ function normalize(rawSessions, rawSpeakers) {
    ═══════════════════════════════════════════ */
 function renderFilters() {
   const el = document.getElementById('filters');
-  let html = '';
+  let html = '<button class="surprise-btn" onclick="shuffleCards()">\u2728 SURPRISE ME</button>';
   for (const t of TRACKS) {
     const c = COLORS[t] || FALLBACK_COLOR;
     html += `<button class="filter-pill" data-kind="track" data-val="${esc(t)}" style="--pill-c1:${c.c1}" onclick="setFilter('track','${esc(t)}')">${esc(t.toUpperCase())}</button>`;
@@ -665,6 +685,22 @@ function renderFilters() {
     html += `<button class="filter-pill" data-kind="type" data-val="${esc(t)}" onclick="setFilter('type','${esc(t)}')">${esc(t.toUpperCase())}</button>`;
   }
   el.innerHTML = html;
+}
+
+function shuffleCards() {
+  /* Fisher-Yates shuffle on S.sessions */
+  for (let i = S.sessions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [S.sessions[i], S.sessions[j]] = [S.sessions[j], S.sessions[i]];
+  }
+  /* Clear any active filters */
+  S.filterTrack = null;
+  S.filterType = null;
+  /* Re-render */
+  renderGrid();
+  applyFilters();
+  /* Scroll to top */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ═══════════════════════════════════════════
