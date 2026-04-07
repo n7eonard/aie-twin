@@ -17,13 +17,13 @@
 <link rel="icon" type="image/svg+xml" href="data/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.0-min.js.gz"></script>
-<script src="https://cdn.amplitude.com/libs/session-replay-browser-1.18.0-min.js.gz"></script>
+<script src="https://cdn.eu.amplitude.com/script/900880a06386b11cc0680ea74c181c9b.js"></script>
 <script>
-  if (typeof window.amplitude !== 'undefined') {
-    window.amplitude.add(window.sessionReplay.plugin({sampleRate:1}));
-    window.amplitude.init('900880a06386b11cc0680ea74c181c9b', {serverZone:'EU', autocapture:true});
-  }
+  window.amplitude.init('900880a06386b11cc0680ea74c181c9b', {
+    serverZone: 'EU',
+    fetchRemoteConfig: true,
+    autocapture: true
+  });
 </script>
 <style>
 /* ── RESET ── */
