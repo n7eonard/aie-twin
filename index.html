@@ -156,10 +156,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 .card-flipper{
   position:relative;
   transform-style:preserve-3d;
-  transition:transform .6s ease;
+  transition:transform .7s cubic-bezier(.4,.0,.15,1.06);
   aspect-ratio:3/4;
 }
 .card-flipper.flipped{transform:rotateY(180deg)}
+@keyframes flip-glow{
+  0%{filter:brightness(1)}
+  35%{filter:brightness(1.4) drop-shadow(0 0 24px rgba(var(--c1-rgb,79,255,176),.5))}
+  100%{filter:brightness(1)}
+}
+.card-flipper.flip-anim{animation:flip-glow .7s ease}
 .card-back{
   backface-visibility:hidden;
   transform:rotateY(180deg);
@@ -1082,7 +1088,26 @@ function flipCard(e) {
   if (e.target.closest('.cb-save') || e.target.closest('.save-btn')) return;
   const shell = e.currentTarget;
   const flipper = shell.querySelector('.card-flipper');
-  if (flipper) flipper.classList.toggle('flipped');
+  if (!flipper) return;
+
+  const isFlipping = flipper.classList.contains('flipped');
+
+  /* Auto-close any other flipped card first */
+  const prev = document.querySelector('.card-flipper.flipped');
+  if (prev && prev !== flipper) {
+    prev.classList.remove('flipped');
+    prev.classList.add('flip-anim');
+    prev.addEventListener('animationend', () => prev.classList.remove('flip-anim'), { once: true });
+  }
+
+  /* Toggle this card */
+  flipper.classList.toggle('flipped');
+
+  /* Trigger glow animation */
+  flipper.classList.remove('flip-anim');
+  void flipper.offsetWidth; /* force reflow to restart animation */
+  flipper.classList.add('flip-anim');
+  flipper.addEventListener('animationend', () => flipper.classList.remove('flip-anim'), { once: true });
 }
 
 /* ═══════════════════════════════════════════
