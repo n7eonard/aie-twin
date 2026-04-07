@@ -80,15 +80,18 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
 }
 @media(max-width:1200px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:540px){.grid{grid-template-columns:1fr;padding:110px 14px 40px}.header{padding:12px 14px}.filters-wrap{padding:8px 14px}}
 @media(max-width:600px){
+  .header{padding:10px 14px}
+  .header-title{font-size:15px}
+  .header-sub{display:none}
+  .header-right{gap:6px}
+  .auth-btn,.deck-btn{font-size:9px;padding:6px 12px}
+  .filters-wrap{top:44px;padding:8px 14px}
+  .filters{gap:5px}
+  .filter-pill{font-size:9px;padding:5px 10px}
+  .grid{grid-template-columns:1fr;padding:100px 14px 40px;gap:16px}
   .card-flipper{aspect-ratio:4/5}
   .c-title{font-size:14px}
-  .header{padding:12px 16px}
-  .header-title{font-size:18px}
-  .filters-wrap{top:53px}
-  .filters{padding:10px 16px}
-  .grid{padding-top:120px}
 }
 
 /* ── SKELETON ── */
@@ -145,12 +148,19 @@ body{background:var(--bg);color:var(--txt);font-family:'Syne',sans-serif;font-si
     linear-gradient(225deg,var(--c2) 0%,transparent 50%),
     linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.8) 100%);
 }
+/* Light reflection: bright spot + holographic rainbow overlay */
 .collector::after{
   content:'';position:absolute;inset:0;z-index:3;
-  background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.12) 0%,transparent 60%);
-  opacity:0;transition:opacity .25s;pointer-events:none;
+  background:
+    radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.45) 0%,rgba(255,255,255,.1) 30%,transparent 60%),
+    conic-gradient(from var(--angle,0deg) at var(--mx,50%) var(--my,50%),
+      rgba(255,100,200,.12),rgba(100,200,255,.15),rgba(100,255,150,.12),
+      rgba(255,255,100,.1),rgba(255,100,200,.12));
+  opacity:0;transition:opacity .3s;pointer-events:none;
+  mix-blend-mode:screen;
 }
 .collector-shell:hover .collector::after{opacity:1}
+.collector.gyro-active::after{opacity:1}
 
 /* ── CARD FLIP ── */
 .card-flipper{
@@ -1111,7 +1121,7 @@ function flipCard(e) {
 }
 
 /* ═══════════════════════════════════════════
-   TILT
+   TILT (mouse + gyroscope)
    ═══════════════════════════════════════════ */
 let _tiltRAF = 0;
 function tiltMove(e) {
@@ -1127,7 +1137,6 @@ function tiltMove(e) {
     const rotY = (x - 0.5) * 20;
     const rotX = (0.5 - y) * 20;
     el.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
-    /* Set reflection vars on the inner .collector for ::after */
     const inner = el.querySelector('.collector');
     if (inner) { inner.style.setProperty('--mx', (x*100)+'%'); inner.style.setProperty('--my', (y*100)+'%'); }
   });
@@ -1149,6 +1158,65 @@ function tiltLeave(e) {
   }
   el.style.transition = 'transform .4s ease-out';
   el.style.transform = 'rotateX(0) rotateY(0) scale(1)';
+}
+
+/* ── Gyroscope tilt for mobile ── */
+let _gyroEnabled = false;
+let _gyroRAF = 0;
+
+function initGyroTilt() {
+  if (_gyroEnabled) return;
+  if (!window.DeviceOrientationEvent) return;
+
+  const start = () => {
+    _gyroEnabled = true;
+    window.addEventListener('deviceorientation', onGyro, { passive: true });
+  };
+
+  /* iOS 13+ requires permission */
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(s => { if (s === 'granted') start(); }).catch(() => {});
+  } else {
+    start();
+  }
+}
+
+function onGyro(e) {
+  cancelAnimationFrame(_gyroRAF);
+  _gyroRAF = requestAnimationFrame(() => {
+    const beta = e.beta || 0;
+    const gamma = e.gamma || 0;
+    /* Normalize: phone held at ~45deg */
+    const rotX = Math.max(-15, Math.min(15, (beta - 45) * 0.5));
+    const rotY = Math.max(-15, Math.min(15, gamma * 0.5));
+    /* Light reflection position: wide range for dramatic movement */
+    const mx = Math.max(0, Math.min(100, 50 + gamma * 1.2));
+    const my = Math.max(0, Math.min(100, 50 + (beta - 45) * 1.2));
+
+    /* Apply to all visible (non-flipped) cards in viewport */
+    document.querySelectorAll('.collector-shell').forEach(shell => {
+      const flipper = shell.querySelector('.card-flipper');
+      if (flipper && flipper.classList.contains('flipped')) return;
+      const rect = shell.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      shell.style.transition = 'transform .12s ease-out';
+      shell.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      const inner = shell.querySelector('.collector');
+      if (inner) {
+        inner.classList.add('gyro-active');
+        inner.style.setProperty('--mx', mx+'%');
+        inner.style.setProperty('--my', my+'%');
+      }
+    });
+  });
+}
+
+/* Request gyro permission on first user interaction (iOS requirement) */
+if (window.matchMedia('(hover: none)').matches) {
+  document.addEventListener('touchstart', function _reqGyro() {
+    initGyroTilt();
+    document.removeEventListener('touchstart', _reqGyro);
+  }, { once: true });
 }
 
 /* ═══════════════════════════════════════════
